@@ -1,0 +1,5 @@
+<dependency>
+  <groupId>org.jacorb</groupId>
+  <artifactId>jacorb</artifactId>
+  <version>3.9</version>
+</dependency>
