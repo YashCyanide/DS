@@ -1,71 +1,79 @@
-Here's how to **Develop a Distributed CORBA Application** that **Changes the Case of a String to Uppercase**, demonstrating **object brokering between 2 different machines**.
+To develop a **String Reversing Distributed Application using CORBA (Common Object Request Broker Architecture)** that performs operations on **two different machines**, you’ll need to:
+
+1. Define the CORBA Interface using IDL.
+2. Implement the server that provides the string reversal service.
+3. Implement the client that consumes the service.
+4. Deploy and run the server and client on different machines.
 
 ---
 
-## 🔧 Overview
+## 🧩 Steps Overview:
 
-### Key Components:
-1. **IDL file** – Defines the interface for the remote method.
-2. **Server** – Provides implementation of the `uppercase` method.
-3. **Client** – Requests the service from a different machine.
-4. **ORB (Object Request Broker)** – Mediates communication between client and server.
-
----
-
-## 📄 Step 1: Write the IDL File (Uppercase.idl)
+### ✅ 1. Define IDL Interface (`Reverse.idl`)
 ```idl
-module CaseApp {
-  interface CaseConverter {
-    string to_upper(in string str);
+module ReverseApp {
+  interface Reverse {
+    string reverse_string(in string str);
   };
 };
 ```
 
-### Compile it:
+### ✅ 2. Compile the IDL File (Run on both machines)
+Use the IDL compiler:
 ```bash
-idlj -fall Uppercase.idl
+idlj -fall Reverse.idl
 ```
-This generates stub and skeleton Java files.
+This generates the required stub and skeleton Java classes.
 
 ---
 
-## 🖥️ Step 2: Server Code (Machine 1)
-
-### ✅ CaseConverterImpl.java
+## 🖥️ Server Side (Machine 1)
+### ✅ 3. `ReverseImpl.java`
 ```java
-import CaseApp.*;
+import ReverseApp.*;
+import org.omg.CORBA.*;
 
-public class CaseConverterImpl extends CaseConverterPOA {
-    public String to_upper(String str) {
-        return str.toUpperCase();
+public class ReverseImpl extends ReversePOA {
+    private ORB orb;
+
+    public void setORB(ORB orb_val) {
+        orb = orb_val;
+    }
+
+    public String reverse_string(String str) {
+        return new StringBuilder(str).reverse().toString();
     }
 }
 ```
 
-### ✅ CaseServer.java
+### ✅ 4. `ReverseServer.java`
 ```java
-import CaseApp.*;
+import ReverseApp.*;
 import org.omg.CORBA.*;
 import org.omg.PortableServer.*;
+import org.omg.PortableServer.POA;
 import java.io.*;
 
-public class CaseServer {
-    public static void main(String[] args) {
+public class ReverseServer {
+    public static void main(String args[]) {
         try {
             ORB orb = ORB.init(args, null);
             POA rootpoa = POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
             rootpoa.the_POAManager().activate();
 
-            CaseConverterImpl converter = new CaseConverterImpl();
-            org.omg.CORBA.Object ref = rootpoa.servant_to_reference(converter);
-            CaseConverter href = CaseConverterHelper.narrow(ref);
+            ReverseImpl reverseImpl = new ReverseImpl();
+            reverseImpl.setORB(orb);
+
+            org.omg.CORBA.Object ref = rootpoa.servant_to_reference(reverseImpl);
+            Reverse href = ReverseHelper.narrow(ref);
 
             // Write IOR to a file
-            PrintWriter out = new PrintWriter(new FileWriter("CaseConverterIOR.txt"));
-            out.println(orb.object_to_string(href));
-            out.close();
+            FileOutputStream file = new FileOutputStream("ReverseIOR.txt");
+            PrintWriter writer = new PrintWriter(file);
+            writer.println(orb.object_to_string(href));
+            writer.close();
 
-            System.out.println("Server ready and waiting...");
+            System.out.println("Server ready...");
             orb.run();
         } catch (Exception e) {
             e.printStackTrace();
@@ -76,31 +84,31 @@ public class CaseServer {
 
 ---
 
-## 💻 Step 3: Client Code (Machine 2)
-
-### ✅ CaseClient.java
+## 💻 Client Side (Machine 2)
+### ✅ 5. `ReverseClient.java`
 ```java
-import CaseApp.*;
+import ReverseApp.*;
 import org.omg.CORBA.*;
 import java.io.*;
 
-public class CaseClient {
-    public static void main(String[] args) {
+public class ReverseClient {
+    public static void main(String args[]) {
         try {
             ORB orb = ORB.init(args, null);
 
-            BufferedReader br = new BufferedReader(new FileReader("CaseConverterIOR.txt"));
+            // Read IOR from file
+            BufferedReader br = new BufferedReader(new FileReader("ReverseIOR.txt"));
             String ior = br.readLine();
             br.close();
 
             org.omg.CORBA.Object objRef = orb.string_to_object(ior);
-            CaseConverter converter = CaseConverterHelper.narrow(objRef);
+            Reverse reverseRef = ReverseHelper.narrow(objRef);
 
-            String input = "distributed systems with corba";
-            String result = converter.to_upper(input);
+            String input = "CORBA is cool";
+            String reversed = reverseRef.reverse_string(input);
 
             System.out.println("Original: " + input);
-            System.out.println("Uppercase: " + result);
+            System.out.println("Reversed: " + reversed);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -110,28 +118,27 @@ public class CaseClient {
 
 ---
 
-## 🔄 Step 4: Run the Application on Two Machines
-
+## 🛠️ Deployment
 ### On **Server Machine**:
 ```bash
 orbd -ORBInitialPort 1050 &
 javac *.java
-java CaseServer -ORBInitialPort 1050 -ORBInitialHost localhost
+java ReverseServer -ORBInitialPort 1050 -ORBInitialHost localhost
 ```
 
-> ⚠️ Ensure that `CaseConverterIOR.txt` is copied/shared with the client machine.
-
----
+### Copy `ReverseIOR.txt` to the **Client Machine**
 
 ### On **Client Machine**:
 ```bash
 javac *.java
-java CaseClient -ORBInitialPort 1050 -ORBInitialHost <Server_IP>
+java ReverseClient -ORBInitialPort 1050 -ORBInitialHost <Server-IP>
 ```
 
 ---
 
-Let me know if you want a ZIP package, a Python implementation, or script-based deployment steps for quick testing!
+Let me know if you want a Python version or using a specific ORB like JacORB or TAO.
+
+
 Great! Here’s how to switch to **Java 8** depending on your OS and tools:
 
 ---
@@ -209,5 +216,3 @@ Great! Here’s how to switch to **Java 8** depending on your OS and tools:
 ---
 
 Let me know your OS or IDE if you want step-by-step for that setup.
-
-
