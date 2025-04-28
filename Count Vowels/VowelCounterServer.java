@@ -5,7 +5,7 @@ public class VowelCounterServer {
     public static void main(String[] args) {
         try {
             // Start the RMI registry
-            LocateRegistry.createRegistry(1099);
+            LocateRegistry.createRegistry(2001);
 
             // Create and bind the remote object
             VowelCounterImpl server = new VowelCounterImpl();

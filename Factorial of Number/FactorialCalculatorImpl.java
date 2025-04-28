@@ -7,7 +7,6 @@ public class FactorialCalculatorImpl extends UnicastRemoteObject implements Fact
         super();
     }
 
-    @Override
     public long calculateFactorial(int number) throws RemoteException {
         long factorial = 1;
         for (int i = 1; i <= number; i++) {
